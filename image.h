@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include "pixel.h"
+#include <iostream>
 
 
 #include "stb_image.h"
@@ -68,7 +69,10 @@ public:
 
     // Pixel access
     int ValidCoord (int x, int y)  const { return x>=0 && x<width && y>=0 && y<height; }
-    Pixel& GetPixel (int x, int y) const { assert(ValidCoord(x,y));  return data.pixels[y*width + x]; }
+    Pixel& GetPixel (int x, int y) const {
+        assert(ValidCoord(x,y));
+        return data.pixels[y*width + x];
+    }
     void SetPixel (int x, int y, Pixel p) const { assert(ValidCoord(x,y));  data.pixels[y*width + x] = p; }
 
     // Dimension access

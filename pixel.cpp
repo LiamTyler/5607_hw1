@@ -42,6 +42,12 @@ void Pixel::SetClamp (double r_, double g_, double b_)
     b = ComponentClamp((int)b_);
 }
 
+void Pixel::Clamp() {
+    r = ComponentClamp(r);
+    g = ComponentClamp(g);
+    b = ComponentClamp(b);
+}
+
 void Pixel::SetClamp (double r_, double g_, double b_, double a_)
 {
     r = ComponentClamp((int)r_);
@@ -59,7 +65,7 @@ Pixel PixelRandom(void)
         ComponentRandom());
 }
 
-
+/*
 Pixel operator+ (const Pixel& p, const Pixel& q)
 {
     return Pixel(
@@ -67,6 +73,10 @@ Pixel operator+ (const Pixel& p, const Pixel& q)
         ComponentClamp(p.g + q.g),
         ComponentClamp(p.b + q.b),
         ComponentClamp(p.a + q.a));
+}
+*/
+Pixel operator+ (const Pixel& p, const Pixel& q) {
+    return Pixel(p.r + q.r, p.g + q.g, p.b + q.b, p.a + q.a);
 }
 
 
@@ -83,10 +93,10 @@ Pixel operator* (const Pixel& p, const Pixel& q)
 Pixel operator* (const Pixel& p, double f)
 {
     return Pixel(
-        ComponentScale(p.r, f),
-        ComponentScale(p.g, f),
-        ComponentScale(p.b, f),
-        ComponentScale(p.a, f));
+        p.r * f,
+        p.g * f,
+        p.b * f,
+        p.a * f);
 }
 
 

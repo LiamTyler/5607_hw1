@@ -49,6 +49,7 @@ struct Pixel
     void Set (Component  r_, Component  g_, Component  b_)                { r=r_; g=g_; b=b_; }
 
     void SetClamp (double r_, double g_, double b_);
+    void Clamp();
     void SetClamp (double r_, double g_, double b_, double a_);
 
     // Returns the luminance of the pixel.
