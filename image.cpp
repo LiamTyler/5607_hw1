@@ -134,9 +134,9 @@ void Image::ChangeContrast (double factor)
         for (y = 0 ; y < Height() ; y++)
         {
             Pixel p = GetPixel(x, y);
-            Component nr = ComponentClamp(128 + factor*(p.r - 128));
-            Component ng = ComponentClamp(128 + factor*(p.g - 128));
-            Component nb = ComponentClamp(128 + factor*(p.b - 128));
+            Component nr = ComponentClamp(128 + factor*(p.r - 128.0));
+            Component ng = ComponentClamp(128 + factor*(p.g - 128.0));
+            Component nb = ComponentClamp(128 + factor*(p.b - 128.0));
             GetPixel(x,y) = Pixel(nr, ng, nb, p.a);
         }
     }
