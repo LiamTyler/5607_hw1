@@ -166,11 +166,14 @@ Image* Image::Crop(int x, int y, int w, int h)
     Image *ret = new Image(w, h);
     for (int h2 = 0; h2 < h; h2++) {
         for (int w2 = 0; w2 < w; w2++) {
-            int i = width*(y+h2) + x + w2;
-            if (i > width*height)
-                ret->data.pixels[w*h2 + w2] = Pixel(0, 0, 0, 0);
-            else
-                ret->data.pixels[w*h2 + w2] = data.pixels[width*(y+h2) + x + w2];
+            int sx = x + w2;
+            int sy = y + h2;
+            if (0 <= sx && sx < width && 0 <= sy && sy < height) {
+                Pixel p = GetPixel(sx, sy);
+                ret->GetPixel(w2, h2) = p;
+            } else {
+                ret->GetPixel(w2, h2) = Pixel(0, 0, 0, 0);
+            }
         }
     }
 
