@@ -331,14 +331,16 @@ Pixel Image::ApplyKernel(int x, int y, int size, double** kern) {
     double g = 0;
     double b = 0;
     int c = size / 2;
-    for (int row = -c; row <= c; row++) {
-        for (int col = -c; col <= c; col++) {
-            int xx = std::min(width - 1, std::max(0, x + col));
-            int yy = std::min(height - 1, std::max(0, y + row));
+    for (int row = 0; row < size; row++) {
+        for (int col = 0; col < size; col++) {
+            int cc = col - c;
+            int cr = row - c;
+            int xx = std::min(width - 1, std::max(0, x + cc));
+            int yy = std::min(height - 1, std::max(0, y + cr));
             Pixel p = GetPixel(xx, yy);
-            r += p.r * kern[row+c][col+c];
-            g += p.g * kern[row+c][col+c];
-            b += p.b * kern[row+c][col+c];
+            r += p.r * kern[row][col];
+            g += p.g * kern[row][col];
+            b += p.b * kern[row][col];
         }
     }
     Pixel s;
@@ -392,6 +394,8 @@ void Image::Blur(int n)
         }
         // std::cout << std::endl;
     }
+    if (n == 1)
+        kern[0][0] = 1;
     KernelFilter(SIZE, kern);
 }
 
