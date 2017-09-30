@@ -198,45 +198,44 @@ void Image::ExtractChannel(int channel)
 }
 
 
-void Image::Quantize (int nbits)
-{
-    double d = 255.0 / (nbits - 1);
-    double n = nbits - 1;
+void Image::Quantize (int nbits) {
+    // double d = 255.0 / (nbits - 1);
+    // double n = nbits - 1;
     for (int x = 0 ; x < Width() ; x++)
     {
         for (int y = 0 ; y < Height() ; y++)
         {
             Pixel p = GetPixel(x,y);
-            int  r = 255 * round(p.r / d) / n;
-            int  g = 255 * round(p.g / d) / n;
-            int  b = 255 * round(p.b / d) / n;
-            Pixel p2;
-            p2.SetClamp(r, g, b, 255);
-            GetPixel(x,y) = p2;
+            // int  r = 255 * round(p.r / d) / n;
+            // int  g = 255 * round(p.g / d) / n;
+            // int  b = 255 * round(p.b / d) / n;
+            // Pixel p2;
+            // p2.SetClamp(r, g, b, 255);
+            // GetPixel(x,y) = p2;
+            GetPixel(x,y) = PixelQuant(p, nbits);
         }
     }
 }
 
 void Image::RandomDither (int nbits)
 {
-    double d = 255.0 / (nbits - 1);
-    double n = nbits - 1;
+    int shift = 8 - nbits;
+    double mult = 255.0/(255 >> shift);
+
     for (int x = 0 ; x < Width() ; x++)
     {
         for (int y = 0 ; y < Height() ; y++)
         {
             Pixel p = GetPixel(x,y);
-            int  lr = 255 * std::floor(p.r / d) / n;
-            int  hr = 255 * std::ceil(p.r / d) / n;
-            int  lg = 255 * std::floor(p.r / d) / n;
-            int  hg = 255 * std::ceil(p.r / d) / n;
-            int  lb = 255 * std::floor(p.r / d) / n;
-            int  hb = 255 * std::ceil(p.r / d) / n;
-            int  r = (p.r < (lr + rand()%(hr-lr+1))) ? lr : hr;
-            int  g = (p.g < (lg + rand()%(hg-lg+1))) ? lg : hg;
-            int  b = (p.b < (lb + rand()%(hb-lb+1))) ? lb : hb;
-            Pixel p2;
-            p2.SetClamp(r, g, b, 255);
+            int r, g, b;
+            r = ((int) p.r / mult);
+            g = ((int) p.g / mult);
+            b = ((int) p.b / mult);
+            r = std::min(255.0,(r + rand() % 2)*mult);
+            g = std::min(255.0,(g + rand() % 2)*mult);
+            b = std::min(255.0,(b + rand() % 2)*mult);
+            Pixel p2 = Pixel(r, g, b, 255);
+            p2.Clamp();
             GetPixel(x,y) = p2;
         }
     }
@@ -254,23 +253,27 @@ static int Bayer4[4][4] =
 
 void Image::OrderedDither(int nbits)
 {
-    double d = 255.0 / (nbits - 1);
-    double n = nbits - 1;
+    int shift = 8 - nbits;
+    double mult = 255.0/(255 >> shift);
+
     for (int y = 0 ; y < Height(); y++) {
         for (int x = 0 ; x < Width(); x++) {
-            int bay = Bayer4[x % 4][y % 4] / 16.0 * d;
             Pixel p = GetPixel(x,y);
-            int  lr = 255 * std::floor(p.r / d) / n;
-            int  hr = 255 * std::ceil(p.r / d) / n;
-            int  lg = 255 * std::floor(p.r / d) / n;
-            int  hg = 255 * std::ceil(p.r / d) / n;
-            int  lb = 255 * std::floor(p.r / d) / n;
-            int  hb = 255 * std::ceil(p.r / d) / n;
-            int  r = (p.r < (lr + bay)) ? lr : hr;
-            int  g = (p.g < (lg + bay)) ? lg : hg;
-            int  b = (p.b < (lb + bay)) ? lb : hb;
-            Pixel p2;
-            p2.SetClamp(r, g, b, 255);
+            int r,g,b;
+            // Get the floored versions of the number
+            r = ((int) p.r / mult) * mult;
+            g = ((int) p.g / mult) * mult;
+            b = ((int) p.b / mult) * mult;
+            int bay = Bayer4[x % 4][y % 4] / 16.0 * mult;
+            // see if each channel is greater than 
+            if (bay > p.r - r)
+                r = std::min(255.0, r + mult);
+            if (bay > p.g - g)
+                g = std::min(255.0, g + mult);
+            if (bay > p.b - b)
+                b = std::min(255.0, b + mult);
+            Pixel p2 = Pixel(r, g, b, 255);
+            p2.Clamp();
             GetPixel(x,y) = p2;
         }
     }
@@ -283,24 +286,28 @@ ALPHA = 7.0 / 16.0,
       GAMMA = 5.0 / 16.0,
       DELTA = 1.0 / 16.0;
 
-
 void Image::FloydSteinbergDither(int nbits)
 {
-    double d = 255.0 / (nbits - 1);
-    double n = nbits - 1;
+    int shift = 8 - nbits;
+    double mult = 255.0/(255 >> shift);
+
     for (int y = 0 ; y < Height() ; y++) {
         int er = 0, eg = 0, eb = 0;
         for (int x = 0 ; x < Width(); x++) {
             Pixel p = GetPixel(x,y);
-            int  r = 255 * round((p.r+er) / d) / n;
-            int  g = 255 * round((p.g+eg) / d) / n;
-            int  b = 255 * round((p.b+eb) / d) / n;
-            Pixel p2;
-            p2.SetClamp(r, g, b, 255);
-            GetPixel(x,y) = p2;
-            er = p.r - p2.r;
-            eg = p.g - p2.g;
-            eb = p.b - p2.b;
+            // Create new pixel with error correction added to it
+            int r = std::min(255, std::max(0, p.r + er));
+            int g = std::min(255, std::max(0, p.g + eg));
+            int b = std::min(255, std::max(0, p.b + eb));
+            Pixel q = Pixel(r,g,b);
+            // Quantize that, and save it into the current position
+            q = PixelQuant(p, nbits);
+            GetPixel(x,y) = q;
+            // Update errors
+            er = p.r - q.r;
+            eg = p.g - q.g;
+            eb = p.b - q.b;
+            // Spread error
             Pixel p3;
             if (x + 1 < width) {
                 p3 = GetPixel(x+1, y);
