@@ -512,22 +512,6 @@ Image* Image::Rotate(double angle)
             n->GetPixel(x,y) = Sample(u,v);
         }
     }
-    /*
-       center = Point(new_width / 2, new_height / 2);
-       for (int x = 0 ; x < new_width ; x++)
-       {
-       for (int y = 0 ; y < new_height ; y++)
-       {
-       Point p(x, -y);
-       p.x = p.x - center.x;
-       p.y = p.y + center.y;
-       p = rotate(-angle, p);
-       double u = (p.x + center.x) / (double) width;
-       double v = (-1*(p.y - center.y)) / (double) height;
-       n->GetPixel(x,y) = Sample(u,v);
-       }
-       }
-       */
     return n;
 }
 
@@ -537,8 +521,6 @@ void Image::Fun()
     int x,y;
     double cx = width / 2;
     double cy = height / 2;
-    double miny = 100;
-    double maxy = -100;
     for (y = 0; y < Height() ; y++) {
         for (x = 0; x < Width() ; x++) {
             double nx = (x*2.0) / width - 1;
@@ -551,18 +533,12 @@ void Image::Fun()
                     phi = 0;
                 double xx = (phi + M_PI / 2) / M_PI;
                 double yy = theta / M_PI;
-                if (yy < miny)
-                    miny = yy;
-                if (yy > maxy)
-                    maxy = yy;
-                std::cout << "x: " << xx << ", y: " << yy << std::endl;
                 img.GetPixel(x, y) = Sample(xx, yy);
             } else { 
                 img.GetPixel(x,y) = Pixel(0,0,0,255);
             }
         }
     }
-    std::cout << "miny: " << miny << ", maxy: " << maxy << std::endl;
     for (x = 0 ; x < Width() ; x++)
         for (y = 0 ; y < Height() ; y++)
             GetPixel(x,y) = img.GetPixel(x,y);
@@ -584,6 +560,7 @@ Pixel Image::Sample (double u, double v){
         return Pixel(0, 0, 0, 0);
 
     Pixel p;
+    // w = new x coord, h = new y coord
     double w = width*u;
     double h = height*v;
     switch(sampling_method) {
@@ -596,42 +573,34 @@ Pixel Image::Sample (double u, double v){
             break;
         case 1:
             {
+                // find nearest floored int from exact position
                 int x = std::floor(w);
                 int y = std::floor(h);
-                if (x == (width - 1))
+                if (x == (width - 1)) {
                     x--;
-                if (y == (height - 1))
+                    w -= 1;
+                }
+                if (y == (height - 1)) {
                     y--;
-
-                /*
-                Pixel p1 = GetPixel(x,y);
-                Pixel p2 = GetPixel(x+1,y);
-                Pixel p3 = GetPixel(x,y+1);
-                Pixel p4 = GetPixel(x+1,y+1);
-                double dx = w - x;
-                double dy = h - y;
-                double fr = dy*(dx*p1.r + (1-dx)*p2.r) + (1-dy)*(dx*p3.r + (1-dx)*p4.r);
-                double fg = dy*(dx*p1.g + (1-dx)*p2.g) + (1-dy)*(dx*p3.g + (1-dx)*p4.g);
-                double fb = dy*(dx*p1.b + (1-dx)*p2.b) + (1-dy)*(dx*p3.b + (1-dx)*p4.b);
-                p = Pixel(fr, fg, fb, 255);
-                p.Clamp();
-                return p;
-                */
+                    h -= 1;
+                }
 
                 // The LERP factors for x and y
                 double tx = w - x;
                 double tx2 = 1 - tx;
                 double ty = h - y;
                 double ty2 = 1-ty;
+
+                // LERP horizontally on the top two points
                 Pixel tmp1 = GetPixel(x, y);
                 Pixel tmp2 = GetPixel(x+1, y);
-                // LERP horizontally on the top two points
                 double p1r = tx*tmp1.r + tx2*tmp2.r;
                 double p1g = tx*tmp1.g + tx2*tmp2.g;
                 double p1b = tx*tmp1.b + tx2*tmp2.b;
+
+                // LERP horizontally on the bottom two points
                 tmp1 = GetPixel(x, y+1);
                 tmp2 = GetPixel(x+1, y+1);
-                // LERP horizontally on the bottom two points
                 double p2r = tx*tmp1.r + tx2*tmp2.r;
                 double p2g = tx*tmp1.g + tx2*tmp2.g;
                 double p2b = tx*tmp1.b + tx2*tmp2.b;
