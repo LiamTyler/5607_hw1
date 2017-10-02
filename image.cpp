@@ -119,8 +119,10 @@ void Image::Brighten (double factor)
         for (y = 0 ; y < Height() ; y++)
         {
             Pixel p = GetPixel(x, y);
-            Pixel scaled_p = p*factor;
-            GetPixel(x,y) = scaled_p;
+            int r = std::max(0.0,std::min(255.0, p.r*factor));
+            int g = std::max(0.0,std::min(255.0, p.g*factor));
+            int b = std::max(0.0,std::min(255.0, p.b*factor));
+            GetPixel(x,y) = Pixel(r,g,b,255);
         }
     }
 }
@@ -604,8 +606,11 @@ Pixel Image::Sample (double u, double v){
                 double p2r = tx*tmp1.r + tx2*tmp2.r;
                 double p2g = tx*tmp1.g + tx2*tmp2.g;
                 double p2b = tx*tmp1.b + tx2*tmp2.b;
+                int r = std::max(0.0,std::min(255.0, ty*p1r + ty2*p2r));
+                int g = std::max(0.0,std::min(255.0, ty*p1g + ty2*p2g));
+                int b = std::max(0.0,std::min(255.0, ty*p1b + ty2*p2b));
                 // LERP vertically
-                p = Pixel(ty*p1r + ty2*p2r, ty*p1g+ty2*p2g, ty*p1b+ty2*p1b, 255); 
+                p = Pixel(r, g, b, 255); 
                 p.Clamp();
             }
 
