@@ -158,6 +158,8 @@ public:
     // Warps an image using a creative filter of your choice.
     void Fun();
 
+    void StainedGlass(int size);
+
     // Sets the sampling method.
     void SetSamplingMethod(int method);
 

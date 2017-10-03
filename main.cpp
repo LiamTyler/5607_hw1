@@ -271,6 +271,17 @@ int main( int argc, char* argv[] ){
 				argv += 2, argc -= 2;
 			}
 
+			else if (!strcmp(*argv, "-stainedGlass"))
+			{
+				if (img == NULL) ShowUsage();
+
+				int size;
+				CheckOption(*argv, argc, 2);
+			    size = atoi(argv[1]);
+				img->StainedGlass(size);
+				argv += 2, argc -= 2;
+			}
+
 			else
 			{
 				fprintf(stderr, "image: invalid option: %s\n", *argv);
@@ -318,6 +329,7 @@ static char options[] =
 "-rotate <angle>\n"
 "-fun\n"
 "-sampling <method no>\n"
+"-stainedGlass <size of squares>\n"
 ;
 
 static void ShowUsage(void)

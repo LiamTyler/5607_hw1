@@ -1,5 +1,4 @@
 #include "image.h"
-// #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <float.h>
@@ -7,6 +6,11 @@
 #include <iostream>
 #include <cmath>
 #include <iomanip>
+#include <vector>
+
+using std::vector;
+using std::min;
+using std::max;
 
 /**
  * Image
@@ -119,9 +123,9 @@ void Image::Brighten (double factor)
         for (y = 0 ; y < Height() ; y++)
         {
             Pixel p = GetPixel(x, y);
-            int r = std::max(0.0,std::min(255.0, p.r*factor));
-            int g = std::max(0.0,std::min(255.0, p.g*factor));
-            int b = std::max(0.0,std::min(255.0, p.b*factor));
+            int r = max(0.0,min(255.0, p.r*factor));
+            int g = max(0.0,min(255.0, p.g*factor));
+            int b = max(0.0,min(255.0, p.b*factor));
             GetPixel(x,y) = Pixel(r,g,b,255);
         }
     }
@@ -233,9 +237,9 @@ void Image::RandomDither (int nbits)
             r = ((int) p.r / mult);
             g = ((int) p.g / mult);
             b = ((int) p.b / mult);
-            r = std::min(255.0,(r + rand() % 2)*mult);
-            g = std::min(255.0,(g + rand() % 2)*mult);
-            b = std::min(255.0,(b + rand() % 2)*mult);
+            r = min(255.0,(r + rand() % 2)*mult);
+            g = min(255.0,(g + rand() % 2)*mult);
+            b = min(255.0,(b + rand() % 2)*mult);
             Pixel p2 = Pixel(r, g, b, 255);
             p2.Clamp();
             GetPixel(x,y) = p2;
@@ -269,11 +273,11 @@ void Image::OrderedDither(int nbits)
             int bay = Bayer4[x % 4][y % 4] / 16.0 * mult;
             // see if each channel is greater than 
             if (bay > p.r - r)
-                r = std::min(255.0, r + mult);
+                r = min(255.0, r + mult);
             if (bay > p.g - g)
-                g = std::min(255.0, g + mult);
+                g = min(255.0, g + mult);
             if (bay > p.b - b)
-                b = std::min(255.0, b + mult);
+                b = min(255.0, b + mult);
             Pixel p2 = Pixel(r, g, b, 255);
             p2.Clamp();
             GetPixel(x,y) = p2;
@@ -298,9 +302,9 @@ void Image::FloydSteinbergDither(int nbits)
         for (int x = 0 ; x < Width(); x++) {
             Pixel p = GetPixel(x,y);
             // Create new pixel with error correction added to it
-            int r = std::min(255, std::max(0, p.r + er));
-            int g = std::min(255, std::max(0, p.g + eg));
-            int b = std::min(255, std::max(0, p.b + eb));
+            int r = min(255, max(0, p.r + er));
+            int g = min(255, max(0, p.g + eg));
+            int b = min(255, max(0, p.b + eb));
             Pixel q = Pixel(r,g,b);
             // Quantize that, and save it into the current position
             q = PixelQuant(p, nbits);
@@ -344,8 +348,8 @@ Pixel Image::ApplyKernel(int x, int y, int size, double** kern) {
         for (int col = 0; col < size; col++) {
             int cc = col - c;
             int cr = row - c;
-            int xx = std::min(width - 1, std::max(0, x + cc));
-            int yy = std::min(height - 1, std::max(0, y + cr));
+            int xx = min(width - 1, max(0, x + cc));
+            int yy = min(height - 1, max(0, y + cr));
             Pixel p = GetPixel(xx, yy);
             r += p.r * kern[row][col];
             g += p.g * kern[row][col];
@@ -547,6 +551,99 @@ void Image::Fun()
 
 }
 
+class Vertex {
+    public:
+        Vertex() : x(0), y(0) {}
+        Vertex(int a, int b) : x(a), y(b) {}
+        
+        int x;
+        int y;
+};
+
+class Poly {
+    public:
+        Poly() {}
+        Poly(vector<int> v) {
+            indices_ = v;
+        }
+        void add(int v) { indices_.push_back(v); }
+        void draw(Image* img, vector<Vertex*> &verts) {
+            Vertex* ul = verts[indices_[0]];
+            Vertex* lr = verts[indices_[2]];
+            int ulx = ul->x;
+            int uly = ul->y;
+            int w = lr->x - ul->x;
+            if (0 <= uly && uly < img->Height()) {
+                for (int i = ulx; i <= ulx + w; i++) {
+                    if (0 <= i && i < img->Width()) 
+                        img->GetPixel(i, uly) = Pixel(0, 0, 0, 255);
+                }
+            }
+            if (0 <= ulx && ulx < img->Width()) {
+                for (int i = uly; i <= uly + w; i++) {
+                    if (0 <= i && i < img->Height()) 
+                        img->GetPixel(ulx, i) = Pixel(0, 0, 0, 255);
+                }
+            }
+            int total = 0;
+            double r = 0, g = 0, b = 0;
+            for (int y = uly + 1; y < uly + w; y++) {
+                for (int x = ulx + 1; x < ulx + w; x++) {
+                    if (0 <= y && y < img->Height() &&
+                        0 <= x && x < img->Width()) {
+                        Pixel p = img->GetPixel(x, y);
+                        r += p.r;
+                        g += p.g;
+                        b += p.b;
+                        total++;
+                    }
+                }
+            }
+            int new_r = min(255.0, max(0.0, r /= total));
+            int new_g = min(255.0, max(0.0, g /= total));
+            int new_b = min(255.0, max(0.0, b /= total));
+            Pixel avg = Pixel(new_r, new_g, new_b, 255);
+            for (int y = uly + 1; y < uly + w; y++) {
+                for (int x = ulx + 1; x < ulx + w; x++) {
+                    if (0 <= y && y < img->Height() &&
+                        0 <= x && x < img->Width()) {
+                        img->GetPixel(x, y) = avg;
+                    }
+                }
+            }
+        }
+
+
+        vector<int> indices_;
+};
+
+void Image::StainedGlass(int sz)
+{
+    vector<Vertex*> vertices;
+    vector<Poly*> polygons;
+    int rows = std::ceil(height / sz + 2);
+    int cols = std::ceil(width / sz + 2);
+    for (int y = 0; y < rows; y++) {
+        for (int x = 0; x < cols; x++) {
+            Vertex* v = new Vertex(x*sz, y*sz);
+            vertices.push_back(v);
+        }
+    }
+    for (int y = 0; y < rows - 1; y++) {
+        for (int x = 0; x < cols - 1; x++) {
+            Poly* p = new Poly;
+            p->add(y*cols + x);
+            p->add(y*cols + x+1);
+            p->add((y+1)*cols + x+1);
+            p->add((y+1)*cols + x);
+            polygons.push_back(p);
+        }
+    }
+    for (int i = 0; i < polygons.size(); ++i) {
+        polygons[i]->draw(this, vertices);
+    }
+}
+
 /**
  * Image Sample
  **/
@@ -568,8 +665,8 @@ Pixel Image::Sample (double u, double v){
     switch(sampling_method) {
         case 0:
             {
-                int x = std::min(width-1, (int) round(w));
-                int y = std::min(height-1, (int) round(h));
+                int x = min(width-1, (int) round(w));
+                int y = min(height-1, (int) round(h));
                 p = GetPixel(x,y);
             }
             break;
@@ -606,9 +703,9 @@ Pixel Image::Sample (double u, double v){
                 double p2r = tx*tmp1.r + tx2*tmp2.r;
                 double p2g = tx*tmp1.g + tx2*tmp2.g;
                 double p2b = tx*tmp1.b + tx2*tmp2.b;
-                int r = std::max(0.0,std::min(255.0, ty*p1r + ty2*p2r));
-                int g = std::max(0.0,std::min(255.0, ty*p1g + ty2*p2g));
-                int b = std::max(0.0,std::min(255.0, ty*p1b + ty2*p2b));
+                int r = max(0.0,min(255.0, ty*p1r + ty2*p2r));
+                int g = max(0.0,min(255.0, ty*p1g + ty2*p2g));
+                int b = max(0.0,min(255.0, ty*p1b + ty2*p2b));
                 // LERP vertically
                 p = Pixel(r, g, b, 255); 
                 p.Clamp();
@@ -640,8 +737,8 @@ Pixel Image::Sample (double u, double v){
                         kern[r][c] /= total;
                     }
                 }
-                int x = std::min(width-1, (int) round(w));
-                int y = std::min(height-1, (int) round(h));
+                int x = min(width-1, (int) round(w));
+                int y = min(height-1, (int) round(h));
                 p = ApplyKernel(x, y, SIZE, kern);
             }
             break;
